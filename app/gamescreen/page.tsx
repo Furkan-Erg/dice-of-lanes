@@ -1,6 +1,8 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
 
 function GameScreen() {
+  const [dicePoints, setDicePoints] = useState(0);
   const players = {
     blue: {
       health: 200,
@@ -52,6 +54,9 @@ function GameScreen() {
       ],
     },
   };
+  const rollDice = (): void => {
+    setDicePoints(dicePoints + Number((Math.random() * 6).toFixed()));
+  };
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-12">
       <div className="flex flex-row items-center justify-center gap-12">
@@ -93,11 +98,12 @@ function GameScreen() {
       </div>
       <div className="flex w-full justify-end px-20 gap-24">
         <div id="dicePoints" className="py-8">
-          PUAN=
+          PUAN = {dicePoints}
         </div>
         <div
           id="dice"
           className="w-24 h-24 bg-green-300 flex justify-center items-center"
+          onClick={rollDice}
         >
           ZAR
         </div>
