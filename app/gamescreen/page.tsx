@@ -13,12 +13,22 @@ interface PunModel {
   point: number;
   color?: string;
 }
+interface PlayerModel {
+  color: string;
+  health: number;
+  isTurnEnd: boolean;
+}
+interface PlayersModel {
+  blue: PlayerModel;
+  red: PlayerModel;
+}
 
 function GameScreen() {
   const [dicePoints, setDicePoints] = useState(0);
   const [pointToPlace, setPointsToPlace] = useState(0);
   const [gameMap, setGameMap] = useState<GameMapModel>();
   const [isDiceRolled, setIsDiceRolled] = useState<boolean>(false);
+  const [players, setPlayers] = useState<PlayersModel>();
 
   const puns = [
     { id: "one", point: 1 },
@@ -28,14 +38,6 @@ function GameScreen() {
     { id: "five", point: 5 },
     { id: "six", point: 6 },
   ];
-  const players = {
-    blue: {
-      health: 200,
-    },
-    red: {
-      health: 200,
-    },
-  };
 
   const rollDice = (): void => {
     setDicePoints(dicePoints + 1 + Number((Math.random() * 6).toFixed()));
@@ -101,6 +103,18 @@ function GameScreen() {
         ],
       },
     });
+    setPlayers({
+      blue: {
+        color: "blue",
+        health: 200,
+        isTurnEnd: false,
+      },
+      red: {
+        color: "red",
+        health: 200,
+        isTurnEnd: false,
+      },
+    });
   };
 
   const placePun = (lane: string) => {
@@ -136,6 +150,9 @@ function GameScreen() {
       gameMap.lanes.bot[0].contains.length > 0;
     return dicePoints >= pun.point && pointToPlace <= 0 && !isAllLanesFull;
   };
+  const endTurn = () => {
+    setIsTurnEnd(true);
+  };
   useEffect(() => {
     setupGameScene();
   }, []);
@@ -147,7 +164,7 @@ function GameScreen() {
           id="blueBase"
           className="w-48 h-48 bg-blue-400 text-white flex justify-center items-center text-5xl"
         >
-          {players.blue.health}
+          {players?.blue.health}
         </div>
         <div id="lanes" className="flex flex-col gap-12">
           <div id="topLane" className="flex flex-row gap-4">
@@ -230,7 +247,7 @@ function GameScreen() {
           id="redBase"
           className="w-48 h-48 bg-red-400 text-white flex justify-center items-center text-5xl"
         >
-          {players.red.health}
+          {players?.red.health}
         </div>
       </div>
       <div className="flex w-full justify-end px-20 gap-24">
@@ -251,6 +268,12 @@ function GameScreen() {
             ))}
           </div>
         </div>
+        <button
+          className="flex justify-center items-center h-8 p-12 bg-orange-500"
+          onClick={endTurn}
+        >
+          Turu Bitir
+        </button>
         <div id="dicePoints" className="py-8">
           PUAN = {dicePoints}
         </div>
