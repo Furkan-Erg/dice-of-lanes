@@ -12,13 +12,20 @@ const io = new Server(server, {
 });
 
 app.use(express.static('public'));
+// class elementleri
 
+const rooms=[]
 // Socket.IO bağlantısı ve olay işleyiciler
 io.on('connection', (socket) => {
 
   socket.on('createRoom', (data) => {
-    console.log('Mesaj:', data);
+    console.log('Oda Bilgileri:', data);
+    rooms.push(data)
   });
+  socket.on('getRooms',()=>{
+    console.log("mevcut odalar",rooms);
+    socket.emit("rooms",rooms);
+  })
 
   socket.on('disconnect', () => {
     console.log('Bir kullanıcı ayrıldı:', socket.id);
