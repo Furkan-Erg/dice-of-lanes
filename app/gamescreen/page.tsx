@@ -151,7 +151,13 @@ function GameScreen() {
     return dicePoints >= pun.point && pointToPlace <= 0 && !isAllLanesFull;
   };
   const endTurn = () => {
-    setIsTurnEnd(true);
+    let temp = players;
+    if (!temp) {
+      return;
+    }
+    //TODO: blue mu red mi kim attı ona bak
+    temp.blue.isTurnEnd = true;
+    setPlayers(temp);
   };
   useEffect(() => {
     setupGameScene();
