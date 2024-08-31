@@ -23,6 +23,7 @@ function Home() {
       <JoinRoomModal
         isModalOpen={openJoin}
         closeJoinRoomModal={closeJoinRoomModal}
+        playersName={playersName}
       ></JoinRoomModal>
       <div className="flex flex-col gap-8">
         <div

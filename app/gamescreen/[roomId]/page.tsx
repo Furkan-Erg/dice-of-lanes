@@ -1,264 +1,168 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import { useParams } from "next/navigation";
 import { RoomModel } from "@/models/roomModel";
 import { GameMapModel } from "@/models/gameMapModel";
-import { PlayersModel } from "@/models/playerModel";
 import { PunModel } from "@/models/punModel";
+
+// Initialize socket connection
+const socket: Socket = io("http://localhost:3001");
 
 function GameScreen() {
   const [dicePoints, setDicePoints] = useState(0);
   const [pointToPlace, setPointsToPlace] = useState(0);
   const [gameMap, setGameMap] = useState<GameMapModel>();
   const [isDiceRolled, setIsDiceRolled] = useState<boolean>(false);
-  const [players, setPlayers] = useState<PlayersModel>();
+  const [currentRoom, setCurrentRoom] = useState<RoomModel | undefined>();
   const params = useParams();
-  const socket = io("http://localhost:3001");
-  const puns = [
-    { id: "one", point: 1 },
-    { id: "two", point: 2 },
-    { id: "three", point: 3 },
-    { id: "four", point: 4 },
-    { id: "five", point: 5 },
-    { id: "six", point: 6 },
-  ];
-  const [currentRoom, setCurrentRoom] = useState<RoomModel>();
 
-  const rollDice = (): void => {
-    setDicePoints(dicePoints + 1 + Number((Math.random() * 6).toFixed()));
-    setIsDiceRolled(true);
-  };
-  const buyPun = (pun: PunModel): void => {
-    if (!gameMap) {
-      return;
-    }
-    let temp = { ...gameMap };
-    setDicePoints(dicePoints - pun.point);
-    setPointsToPlace(pun.point);
-    //TODO: burda player red se 10 blueysa 0 olacak şekilde refactor lazım
-    temp.lanes.top[0].contains.length == 0 &&
-      (temp.lanes.top[0].isSelectable = true);
-    temp.lanes.mid[0].contains.length == 0 &&
-      (temp.lanes.mid[0].isSelectable = true);
-    temp.lanes.bot[0].contains.length == 0 &&
-      (temp.lanes.bot[0].isSelectable = true);
-    setGameMap(temp);
-  };
+  useEffect(() => {
+    setupGameScene();
+  }, []);
+
+  useEffect(() => {
+    const handleRooms = (rooms: RoomModel[]) => {
+      console.log("Received rooms:", rooms);
+      const room = rooms.find((room) => room.roomId === params.roomId);
+      console.log("Updated currentRoom", room);
+      setCurrentRoom(room);
+    };
+
+    socket.on("rooms", handleRooms);
+    socket.emit("getRooms");
+
+    return () => {
+      socket.off("rooms", handleRooms);
+    };
+  }, [params.roomId]);
+
   const setupGameScene = (): void => {
     setGameMap({
       lanes: {
-        top: [
-          { id: 0, contains: [] },
-          { id: 1, contains: [] },
-          { id: 2, contains: [] },
-          { id: 3, contains: [] },
-          { id: 4, contains: [] },
-          { id: 5, contains: [] },
-          { id: 6, contains: [] },
-          { id: 7, contains: [] },
-          { id: 8, contains: [] },
-          { id: 9, contains: [] },
-          { id: 10, contains: [] },
-        ],
-        mid: [
-          { id: 0, contains: [] },
-          { id: 1, contains: [] },
-          { id: 2, contains: [] },
-          { id: 3, contains: [] },
-          { id: 4, contains: [] },
-          { id: 5, contains: [] },
-          { id: 6, contains: [] },
-          { id: 7, contains: [] },
-          { id: 8, contains: [] },
-          { id: 9, contains: [] },
-          { id: 10, contains: [] },
-        ],
-        bot: [
-          { id: 0, contains: [] },
-          { id: 1, contains: [] },
-          { id: 2, contains: [] },
-          { id: 3, contains: [] },
-          { id: 4, contains: [] },
-          { id: 5, contains: [] },
-          { id: 6, contains: [] },
-          { id: 7, contains: [] },
-          { id: 8, contains: [] },
-          { id: 9, contains: [] },
-          { id: 10, contains: [] },
-        ],
+        top: Array.from({ length: 11 }, (_, id) => ({ id, contains: [] })),
+        mid: Array.from({ length: 11 }, (_, id) => ({ id, contains: [] })),
+        bot: Array.from({ length: 11 }, (_, id) => ({ id, contains: [] })),
       },
     });
-    setPlayers({
-      blue: {
-        color: "blue",
-        health: 200,
-        isTurnEnd: false,
-      },
-      red: {
-        color: "red",
-        health: 200,
-        isTurnEnd: false,
-      },
+  };
+
+  const rollDice = (): void => {
+    setDicePoints(
+      (prevPoints) => prevPoints + 1 + Math.floor(Math.random() * 6) + 1
+    );
+    setIsDiceRolled(true);
+  };
+
+  const buyPun = (pun: PunModel): void => {
+    if (!gameMap) return;
+
+    let temp = { ...gameMap };
+    setDicePoints(dicePoints - pun.point);
+    setPointsToPlace(pun.point);
+
+    ["top", "mid", "bot"].forEach((lane) => {
+      if (temp.lanes[lane][0].contains.length === 0) {
+        temp.lanes[lane][0].isSelectable = true;
+      }
     });
+
+    setGameMap(temp);
   };
 
   const placePun = (lane: string) => {
-    if (!gameMap) {
-      return;
-    }
-    let temp = { ...gameMap };
+    if (!gameMap || !gameMap.lanes[lane][0].isSelectable) return;
 
-    if (!temp.lanes[lane][0].isSelectable) {
-      return;
-    }
-    //TODO: burda player red se 10 blueysa 0 olacak şekilde refactor lazım
+    let temp = { ...gameMap };
     temp.lanes[lane][0].contains.push({
       id: Math.random().toString(),
       point: pointToPlace,
-      color: "blue", //TODO: burdada player rengi olması lazım
+      color: "blue", // Adjust color as needed
     });
-    //TODO: burda player red se 10 blueysa 0 olacak şekilde refactor lazım
-    temp.lanes.top[0].isSelectable = false;
-    temp.lanes.mid[0].isSelectable = false;
-    temp.lanes.bot[0].isSelectable = false;
+
+    ["top", "mid", "bot"].forEach((lane) => {
+      temp.lanes[lane][0].isSelectable = false;
+    });
+
     setPointsToPlace(0);
     setGameMap(temp);
   };
+
   const canBuyPun = (pun: PunModel) => {
-    if (!gameMap) {
-      return;
-    }
-    //TOOD: contains.length>0 bu buga yol açar rakip geldiğinde lenght mecburen fazla oluyor
+    if (!gameMap) return false;
+
     const isAllLanesFull =
       gameMap.lanes.top[0].contains.length > 0 &&
       gameMap.lanes.mid[0].contains.length > 0 &&
       gameMap.lanes.bot[0].contains.length > 0;
+
     return dicePoints >= pun.point && pointToPlace <= 0 && !isAllLanesFull;
   };
+
   const endTurn = () => {
-    let temp = players;
-    if (!temp) {
-      return;
-    }
-    //TODO: blue mu red mi kim attı ona bak
-    temp.blue.isTurnEnd = true;
-    setPlayers(temp);
+    // TODO: Implement end turn logic based on player turn
   };
-  useEffect(() => {
-    setupGameScene();
-  }, []);
-  useEffect(() => {
-    const handleRooms = (rooms: RoomModel[]) => {
-      const temp = rooms.find((room) => room.roomId === params.roomId);
-      setCurrentRoom(temp);
-    };
-    socket.on("rooms", handleRooms);
-    socket.emit("getRooms");
-    return () => {
-      socket.off("rooms", handleRooms);
-      socket.close();
-    };
-  }, [params]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-12">
       <div className="flex flex-row items-center justify-center gap-12">
         <div
           id="blueBase"
-          className="w-48 h-48 bg-blue-400 text-white flex justify-center items-center text-5xl"
+          className="w-48 h-48 bg-blue-400 text-white flex flex-col justify-center items-center text-5xl"
         >
-          {players?.blue.health}
+          <div>{currentRoom?.players?.blue?.playerName}</div>
+          <div>{currentRoom?.players?.blue?.health}</div>
         </div>
         <div id="lanes" className="flex flex-col gap-12">
-          <div id="topLane" className="flex flex-row gap-4">
-            {gameMap?.lanes.top.map((tile, index) => (
-              <div
-                key={tile.id}
-                onClick={() => placePun("top")}
-                className={`w-12 h-12 border border-yellow-700 flex justify-center items-center ${
-                  tile.isSelectable ? "bg-yellow-300 cursor-pointer" : ""
-                }`}
-              >
-                {tile.contains?.length > 0 ? (
-                  <div>
-                    {tile.contains?.map((pun: PunModel) => (
-                      <div
-                        className={`flex justify-center  items-center w-8 h-8 rounded-full bg-${pun.color}-400`}
-                      >
-                        {pun.point}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  index
-                )}
-              </div>
-            ))}
-          </div>
-          <div id="midLane" className="flex flex-row gap-4">
-            {gameMap?.lanes.mid.map((tile, index) => (
-              <div
-                key={tile.id}
-                onClick={() => placePun("mid")}
-                className={`w-12 h-12 border border-yellow-700 flex justify-center items-center ${
-                  tile.isSelectable ? "bg-yellow-300 cursor-pointer" : ""
-                }`}
-              >
-                {tile.contains.length > 0 ? (
-                  <div>
-                    {tile.contains.map((pun: PunModel) => (
-                      <div
-                        className={`flex justify-center  items-center w-8 h-8 rounded-full bg-${pun.color}-400`}
-                      >
-                        {pun.point}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  index
-                )}
-              </div>
-            ))}
-          </div>
-          <div id="botLane" className="flex flex-row gap-4">
-            {gameMap?.lanes.bot.map((tile, index) => (
-              <div
-                key={tile.id}
-                onClick={() => placePun("bot")}
-                className={`w-12 h-12 border border-yellow-700 flex justify-center items-center ${
-                  tile.isSelectable ? "bg-yellow-300 cursor-pointer" : ""
-                }`}
-              >
-                {tile.contains.length > 0 ? (
-                  <div>
-                    {tile.contains.map((pun: PunModel) => (
-                      <div
-                        className={`flex justify-center  items-center w-8 h-8 rounded-full bg-${pun.color}-400`}
-                      >
-                        {pun.point}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  index
-                )}
-              </div>
-            ))}
-          </div>
+          {["top", "mid", "bot"].map((lane) => (
+            <div key={lane} id={`${lane}Lane`} className="flex flex-row gap-4">
+              {gameMap?.lanes[lane].map((tile) => (
+                <div
+                  key={tile.id}
+                  onClick={() => placePun(lane)}
+                  className={`w-12 h-12 border border-yellow-700 flex justify-center items-center ${
+                    tile.isSelectable ? "bg-yellow-300 cursor-pointer" : ""
+                  }`}
+                >
+                  {tile.contains.length > 0 ? (
+                    <div>
+                      {tile.contains.map((pun: PunModel) => (
+                        <div
+                          key={pun.id}
+                          className={`flex justify-center items-center w-8 h-8 rounded-full bg-${pun.color}-400`}
+                        >
+                          {pun.point}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    tile.id
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
         <div
           id="redBase"
-          className="w-48 h-48 bg-red-400 text-white flex justify-center items-center text-5xl"
+          className="w-48 h-48 bg-red-400 text-white flex flex-col justify-center items-center text-5xl"
         >
-          {players?.red.health}
+          <div>{currentRoom?.players?.red?.playerName}</div>
+          <div>{currentRoom?.players?.red?.health}</div>
         </div>
       </div>
       <div className="flex w-full justify-end px-20 gap-24">
         <div id="punSelection" className="flex flex-col gap-4">
           <div>PİYONLAR</div>
           <div className="flex flex-row gap-8">
-            {puns.map((pun) => (
+            {[
+              { id: "one", point: 1 },
+              { id: "two", point: 2 },
+              { id: "three", point: 3 },
+              { id: "four", point: 4 },
+              { id: "five", point: 5 },
+              { id: "six", point: 6 },
+            ].map((pun) => (
               <button
                 key={pun.id}
                 className={`flex justify-center items-center w-8 h-8 border border-purple-400 ${

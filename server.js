@@ -1,38 +1,57 @@
-// server.js
-const express = require('express');
-const { Server } = require('socket.io');
-const http = require('http');
+const express = require("express");
+const { Server } = require("socket.io");
+const http = require("http");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: ["http://localhost:3000"], // Replace with your frontend URL
   },
 });
 
-app.use(express.static('public'));
-// class elementleri
+app.use(express.static("public"));
 
-const rooms=[]
-// Socket.IO bağlantısı ve olay işleyiciler
-io.on('connection', (socket) => {
+const rooms = [];
 
-  socket.on('createRoom', (data) => {
-    console.log('Oda Bilgileri:', data);
-    rooms.push(data)
-  });
-  socket.on('getRooms',()=>{
-    console.log("mevcut odalar",rooms);
-    socket.emit("rooms",rooms);
-  })
+// Handler Functions
+const handleCreateRoom = (data) => {
+  rooms.push(data);
+};
 
-  socket.on('disconnect', () => {
-    console.log('Bir kullanıcı ayrıldı:', socket.id);
+const handleGetRooms = (socket) => {
+  socket.emit("rooms", rooms);
+};
+
+const handleJoinRoom = (playersName, roomId) => {
+  const selectedRoom = rooms.find((room) => room.roomId === roomId);
+  if (selectedRoom) {
+      selectedRoom.players.red = {
+        color: "red",
+        health: 200,
+        isTurnEnd: false,
+        playerName: playersName
+      };
+      console.log("Updated rooms:", rooms);
+      io.emit("rooms", rooms); // Broadcast to all clients
+  }
+};
+
+// Socket.IO connection and event handlers
+io.on("connection", (socket) => {
+  console.log("New connection:", socket.id);
+
+  socket.on("createRoom", handleCreateRoom);
+  socket.on("getRooms", () => handleGetRooms(socket));
+  socket.on("joinRoom", handleJoinRoom);
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+    // Handle player disconnection logic here
   });
 });
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Sunucu port ${PORT} üzerinde çalışıyor`);
+  console.log(`Server is running on port ${PORT}`);
 });

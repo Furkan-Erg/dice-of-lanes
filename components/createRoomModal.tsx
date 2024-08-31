@@ -1,5 +1,6 @@
 import { RoomModel } from "@/models/roomModel";
 import { Modal, Box, Typography, Button, Input } from "@mui/material";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
 
@@ -25,6 +26,7 @@ function CreateRoomModal({
   playersName: string;
 }) {
   const socket = io("http://localhost:3001");
+  const router = useRouter();
   const [openCreate, setOpenCreate] = useState(false);
   const closeModal = () => {
     closeCreateRoomModal();
@@ -43,12 +45,20 @@ function CreateRoomModal({
     console.log("oda kuruluyor");
     let room: RoomModel = {
       roomId: (Math.random() * 1000).toFixed(),
-      playersName: playersName,
       roomName: roomName,
       password: password,
+      players: {
+        blue: {
+          color: "blue",
+          health: 200,
+          isTurnEnd: false,
+          playerName: playersName,
+        },
+      },
     };
     socket.emit("createRoom", room);
     closeModal();
+    router.push(`/gamescreen/${room.roomId}`);
     //TODO: game screen e yönlendirme yapılacak
   };
 

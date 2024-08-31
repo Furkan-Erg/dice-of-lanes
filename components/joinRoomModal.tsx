@@ -19,7 +19,8 @@ const style = {
 const JoinRoomModal: React.FC<{
   isModalOpen: boolean;
   closeJoinRoomModal: () => void;
-}> = ({ isModalOpen, closeJoinRoomModal }) => {
+  playersName: string;
+}> = ({ isModalOpen, closeJoinRoomModal, playersName }) => {
   const router = useRouter();
   const [openJoin, setOpenJoin] = useState(false);
   const [rooms, setRooms] = useState<RoomModel[]>([]);
@@ -64,8 +65,9 @@ const JoinRoomModal: React.FC<{
   const joinRoom = () => {
     const correctPassword = selectedRoom?.password == password;
     if (correctPassword) {
-      //TODO: route et oyun ekranına
-      router.push(`/gamescreen?roomId=${selectedRoom.roomId}`);
+      router.push(`/gamescreen/${selectedRoom.roomId}`);
+      const socketInstance = socket();
+      socketInstance.emit("joinRoom", playersName, selectedRoom.roomId);
     } else {
       setIsPasswordWrong(true);
       return;
