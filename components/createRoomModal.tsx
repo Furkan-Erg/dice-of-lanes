@@ -1,3 +1,4 @@
+import { RoomModel } from "@/models/roomModel";
 import { Modal, Box, Typography, Button, Input } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
@@ -13,11 +14,7 @@ const style = {
   boxShadow: 24,
   p: 4,
 };
-interface RoomModel {
-  playersName: string;
-  roomName: string;
-  password: string;
-}
+
 function CreateRoomModal({
   isModalOpen,
   closeCreateRoomModal,
@@ -45,6 +42,7 @@ function CreateRoomModal({
   const createRoom = () => {
     console.log("oda kuruluyor");
     let room: RoomModel = {
+      roomId: (Math.random() * 1000).toFixed(),
       playersName: playersName,
       roomName: roomName,
       password: password,

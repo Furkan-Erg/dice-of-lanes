@@ -1,27 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
-
-interface GameMapModel {
-  lanes: {
-    top: { id: number; contains: PunModel[]; isSelectable?: boolean }[];
-    mid: { id: number; contains: PunModel[]; isSelectable?: boolean }[];
-    bot: { id: number; contains: PunModel[]; isSelectable?: boolean }[];
-  };
-}
-interface PunModel {
-  id: string;
-  point: number;
-  color?: string;
-}
-interface PlayerModel {
-  color: string;
-  health: number;
-  isTurnEnd: boolean;
-}
-interface PlayersModel {
-  blue: PlayerModel;
-  red: PlayerModel;
-}
+import { io } from "socket.io-client";
+import { useParams } from "next/navigation";
+import { RoomModel } from "@/models/roomModel";
+import { GameMapModel } from "@/models/gameMapModel";
+import { PlayersModel } from "@/models/playerModel";
+import { PunModel } from "@/models/punModel";
 
 function GameScreen() {
   const [dicePoints, setDicePoints] = useState(0);
@@ -29,7 +13,8 @@ function GameScreen() {
   const [gameMap, setGameMap] = useState<GameMapModel>();
   const [isDiceRolled, setIsDiceRolled] = useState<boolean>(false);
   const [players, setPlayers] = useState<PlayersModel>();
-
+  const params = useParams();
+  const socket = io("http://localhost:3001");
   const puns = [
     { id: "one", point: 1 },
     { id: "two", point: 2 },
@@ -38,6 +23,7 @@ function GameScreen() {
     { id: "five", point: 5 },
     { id: "six", point: 6 },
   ];
+  const [currentRoom, setCurrentRoom] = useState<RoomModel>();
 
   const rollDice = (): void => {
     setDicePoints(dicePoints + 1 + Number((Math.random() * 6).toFixed()));
@@ -162,6 +148,18 @@ function GameScreen() {
   useEffect(() => {
     setupGameScene();
   }, []);
+  useEffect(() => {
+    const handleRooms = (rooms: RoomModel[]) => {
+      const temp = rooms.find((room) => room.roomId === params.roomId);
+      setCurrentRoom(temp);
+    };
+    socket.on("rooms", handleRooms);
+    socket.emit("getRooms");
+    return () => {
+      socket.off("rooms", handleRooms);
+      socket.close();
+    };
+  }, [params]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-12">

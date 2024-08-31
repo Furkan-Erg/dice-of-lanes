@@ -1,4 +1,6 @@
+import { RoomModel } from "@/models/roomModel";
 import { Modal, Box, Typography, Button, Input } from "@mui/material";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState, useCallback } from "react";
 import io from "socket.io-client";
 
@@ -14,16 +16,11 @@ const style = {
   p: 4,
 };
 
-interface RoomModel {
-  playersName: string;
-  roomName: string;
-  password: string;
-}
-
 const JoinRoomModal: React.FC<{
   isModalOpen: boolean;
   closeJoinRoomModal: () => void;
 }> = ({ isModalOpen, closeJoinRoomModal }) => {
+  const router = useRouter();
   const [openJoin, setOpenJoin] = useState(false);
   const [rooms, setRooms] = useState<RoomModel[]>([]);
   const socket = useCallback(() => io("http://localhost:3001"), []);
@@ -68,6 +65,7 @@ const JoinRoomModal: React.FC<{
     const correctPassword = selectedRoom?.password == password;
     if (correctPassword) {
       //TODO: route et oyun ekranına
+      router.push(`/gamescreen?roomId=${selectedRoom.roomId}`);
     } else {
       setIsPasswordWrong(true);
       return;
@@ -82,7 +80,7 @@ const JoinRoomModal: React.FC<{
       aria-describedby="modal-modal-description"
     >
       <Box sx={style}>
-        <Typography id="modal-modal-title" variant="h6" component="h2">
+        <Typography id="modal-title" variant="h6" component="h2">
           {title}
         </Typography>
         {selectedRoom ? (

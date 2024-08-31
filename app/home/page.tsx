@@ -5,7 +5,6 @@ import JoinRoomModal from "@/components/joinRoomModal";
 
 function Home() {
   const [playersName, setPlayersName] = useState<string>("fuzzy player");
-
   const handleNameChange = (event: any) => {
     setPlayersName(event.target.value);
   };
